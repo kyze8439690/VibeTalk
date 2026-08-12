@@ -18,7 +18,6 @@ struct VibeTalkApp: App {
         }
 
         guard let flagIndex = args.firstIndex(of: "--transcribe"), args.count > flagIndex + 1 else { return }
-
         let wavPath = args[flagIndex + 1]
         let modelPath = ProcessInfo.processInfo.environment["VIBETALK_MODEL"]
             ?? ModelManager().modelURL.path
@@ -31,8 +30,9 @@ struct VibeTalkApp: App {
             FileHandle.standardError.write("模型加载失败: \(modelPath)\n".data(using: .utf8)!)
             exit(1)
         }
+        let languages = cliLanguages()
         let start = Date()
-        let text = transcriber.transcribe(samples)
+        let text = transcriber.transcribe(samples, languages: languages)
         let elapsed = Date().timeIntervalSince(start)
         print(text)
         FileHandle.standardError.write(
@@ -40,6 +40,14 @@ struct VibeTalkApp: App {
         )
         transcriber.close()
         exit(0)
+    }
+
+    private static func cliLanguages() -> [String] {
+        let env = ProcessInfo.processInfo.environment["VIBETALK_LANGUAGES"] ?? ""
+        let list = env.components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        return list.isEmpty ? ["zh", "en"] : list
     }
 
     static func runRecordSelfTest(seconds: Double) {
@@ -101,6 +109,23 @@ struct VibeTalkApp: App {
 struct MenuContentView: View {
     @ObservedObject var appState: AppState
 
+    private var languagesLabel: String {
+        let names: [String: String] = ["zh": "中文", "en": "英语", "ja": "日语"]
+        return appState.selectedLanguages
+            .compactMap { names[$0] }
+            .sorted()
+            .joined(separator: " + ")
+    }
+
+    private func toggleLanguage(_ code: String) {
+        if appState.selectedLanguages.contains(code) {
+            guard appState.selectedLanguages.count > 1 else { return }
+            appState.selectedLanguages.remove(code)
+        } else {
+            appState.selectedLanguages.insert(code)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(appState.statusText)
@@ -125,6 +150,36 @@ struct MenuContentView: View {
                         } else {
                             Text(device.name)
                         }
+                    }
+                }
+            }
+
+            Menu("识别语言：\(languagesLabel)") {
+                Button {
+                    toggleLanguage("zh")
+                } label: {
+                    if appState.selectedLanguages.contains("zh") {
+                        Label("中文", systemImage: "checkmark")
+                    } else {
+                        Text("中文")
+                    }
+                }
+                Button {
+                    toggleLanguage("en")
+                } label: {
+                    if appState.selectedLanguages.contains("en") {
+                        Label("英语", systemImage: "checkmark")
+                    } else {
+                        Text("英语")
+                    }
+                }
+                Button {
+                    toggleLanguage("ja")
+                } label: {
+                    if appState.selectedLanguages.contains("ja") {
+                        Label("日语", systemImage: "checkmark")
+                    } else {
+                        Text("日语")
                     }
                 }
             }

@@ -24,6 +24,11 @@ final class AppState: ObservableObject {
     @Published var lastResult: String?
     @Published var statusMessage = "初始化中…"
     @Published var glossaryText = ""
+    @Published var selectedLanguages: Set<String> = ["zh", "en"] {
+        didSet {
+            UserDefaults.standard.set(Array(selectedLanguages), forKey: "selectedLanguages")
+        }
+    }
 
     var followSystem: Bool { selectedDeviceID == 0 }
 
@@ -61,6 +66,10 @@ final class AppState: ObservableObject {
         if let saved = UserDefaults.standard.string(forKey: "hotkeyChoice"),
            let choice = HotkeyChoice(rawValue: saved) {
             hotkeyChoice = choice
+        }
+        if let saved = UserDefaults.standard.array(forKey: "selectedLanguages") as? [String],
+           !saved.isEmpty {
+            selectedLanguages = Set(saved)
         }
         hotkey.hotkey = hotkeyChoice
         hotkey.onKeyDown = { [weak self] in self?.startRecording() }
@@ -183,10 +192,11 @@ final class AppState: ObservableObject {
         }
 
         guard let transcriber else { return }
+        let languages = Array(selectedLanguages)
         transcribing = true
         Task.detached { [weak self] in
             let start = Date()
-            let text = transcriber.transcribe(samples)
+            let text = transcriber.transcribe(samples, languages: languages)
             let elapsed = Date().timeIntervalSince(start)
             Log.write("Transcribe: 文本=\(text.isEmpty ? "(空)" : text)")
             await MainActor.run {

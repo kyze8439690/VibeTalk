@@ -31,10 +31,10 @@ final class WhisperTranscriber {
         }
     }
 
-    func transcribe(_ samples: [Float]) -> String {
+    func transcribe(_ samples: [Float], languages: [String] = ["zh", "en"]) -> String {
         guard let ctx, !samples.isEmpty else { return "" }
 
-        let language = detectLanguage(samples)
+        let language = detectLanguage(samples, candidates: languages)
 
         var params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY)
         params.n_threads = 4
@@ -76,21 +76,28 @@ final class WhisperTranscriber {
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func detectLanguage(_ samples: [Float]) -> String {
+    private func detectLanguage(_ samples: [Float], candidates: [String]) -> String {
         guard let ctx else { return "zh" }
         let rc = samples.withUnsafeBufferPointer { buffer -> Int32 in
             guard let base = buffer.baseAddress else { return -1 }
             return whisper_pcm_to_mel(ctx, base, Int32(samples.count), 4)
         }
-        guard rc == 0 else { return "zh" }
+        guard rc == 0 else { return candidates.first ?? "zh" }
 
         let langCount = Int(whisper_lang_max_id()) + 1
         var probs = [Float](repeating: 0, count: langCount)
         whisper_lang_auto_detect(ctx, 0, 4, &probs)
 
-        let zh = Int(whisper_lang_id("zh"))
-        let en = Int(whisper_lang_id("en"))
-        guard zh >= 0, en >= 0 else { return "zh" }
-        return probs[en] > probs[zh] ? "en" : "zh"
+        var best = candidates.first ?? "zh"
+        var bestProb: Float = -1
+        for lang in candidates {
+            let id = Int(whisper_lang_id(lang))
+            guard id >= 0, id < langCount else { continue }
+            if probs[id] > bestProb {
+                bestProb = probs[id]
+                best = lang
+            }
+        }
+        return best
     }
 }
