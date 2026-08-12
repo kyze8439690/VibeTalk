@@ -4,14 +4,16 @@
 set -euo pipefail
 
 MODE="dev"
-if [ "${1:-}" = "--release" ]; then
-    MODE="release"
-elif [ "${1:-}" = "--dev" ]; then
-    MODE="dev"
-elif [ -n "${1:-}" ]; then
-    echo "未知参数: $1（可选 --dev / --release）" >&2
-    exit 1
-fi
+VERSION=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dev) MODE="dev" ;;
+        --release) MODE="release" ;;
+        --version) VERSION="${2:?--version 需要参数}"; shift ;;
+        *) echo "未知参数: $1（可选 --dev / --release / --version X.Y.Z）" >&2; exit 1 ;;
+    esac
+    shift
+done
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -60,6 +62,11 @@ PLIST="$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $APP_NAME" "$PLIST" 2>/dev/null || \
     /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile ${ICON%.icns}" "$PLIST"
+
+if [ -n "$VERSION" ]; then
+    /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"
+    /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$PLIST"
+fi
 
 codesign --force --sign "VibeTalk Local Signing" "$APP"
 
