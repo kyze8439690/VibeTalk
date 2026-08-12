@@ -109,14 +109,6 @@ struct VibeTalkApp: App {
 struct MenuContentView: View {
     @ObservedObject var appState: AppState
 
-    private var languagesLabel: String {
-        let names: [String: String] = ["zh": "中文", "en": "英语", "ja": "日语"]
-        return appState.selectedLanguages
-            .compactMap { names[$0] }
-            .sorted()
-            .joined(separator: " + ")
-    }
-
     private func toggleLanguage(_ code: String) {
         if appState.selectedLanguages.contains(code) {
             guard appState.selectedLanguages.count > 1 else { return }
@@ -131,7 +123,7 @@ struct MenuContentView: View {
             Text(appState.statusText)
             Divider()
 
-            Menu("麦克风：\(appState.selectedDeviceName)") {
+            Menu("麦克风") {
                 Button {
                     appState.selectDevice(0)
                 } label: {
@@ -154,7 +146,7 @@ struct MenuContentView: View {
                 }
             }
 
-            Menu("识别语言：\(languagesLabel)") {
+            Menu("识别语言") {
                 Button {
                     toggleLanguage("zh")
                 } label: {
@@ -184,7 +176,7 @@ struct MenuContentView: View {
                 }
             }
 
-            Menu("热键：按住\(appState.hotkeyChoice.label)") {
+            Menu("热键") {
                 ForEach(HotkeyChoice.allCases, id: \.self) { choice in
                     Button {
                         appState.hotkeyChoice = choice

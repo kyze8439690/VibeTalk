@@ -60,3 +60,7 @@ xattr -dr com.apple.quarantine /path/to/VibeTalk.app
 ## 构建与开发
 
 见 [docs/BUILDING.md](docs/BUILDING.md)：编译打包、自签名证书、识别质量测试工装、调试模式、目录结构与技术决策记录。
+
+## 更新日志
+
+见 [CHANGELOG.md](CHANGELOG.md)。
