@@ -3,6 +3,9 @@ import AppKit
 import Combine
 
 final class AppState: ObservableObject {
+
+    static let shared = AppState()
+
     @Published var recording = false
     @Published var transcribing = false
     @Published var modelReady = false
@@ -48,7 +51,7 @@ final class AppState: ObservableObject {
     private let hotkey = HotkeyMonitor()
     private var permissionTimer: Timer?
 
-    init() {
+    private init() {
         requestMicPermission()
         refreshDevices()
         glossaryText = modelManager.loadGlossary().joined(separator: "\n")
