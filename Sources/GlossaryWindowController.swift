@@ -12,7 +12,7 @@ final class GlossaryWindowController: NSObject, NSWindowDelegate {
             let hosting = NSHostingController(rootView: GlossaryEditorView())
             let w = NSWindow(contentViewController: hosting)
             w.title = "术语表"
-            w.styleMask = [.titled, .closable, .miniaturizable]
+            w.styleMask = [.titled, .closable]
             w.setContentSize(NSSize(width: 420, height: 420))
             w.isReleasedWhenClosed = false
             w.delegate = self

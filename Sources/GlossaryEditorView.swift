@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct GlossaryEditorView: View {
-    @Environment(\.dismiss) private var dismiss
     @State private var text: String = ""
     @State private var saved = false
 
@@ -24,10 +23,13 @@ struct GlossaryEditorView: View {
                         .font(.caption)
                 }
                 Spacer()
-                Button("取消") { dismiss() }
                 Button("保存") {
                     AppState.shared.saveGlossary(text)
                     saved = true
+                    Task {
+                        try? await Task.sleep(for: .seconds(1.5))
+                        await MainActor.run { saved = false }
+                    }
                 }
                 .buttonStyle(.borderedProminent)
             }
