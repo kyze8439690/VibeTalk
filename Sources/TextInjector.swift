@@ -15,6 +15,7 @@ enum TextInjector {
 
     @discardableResult
     static func inject(_ text: String) -> Bool {
+        let backup = backupPasteboard()
         copyToPasteboard(text)
 
         guard isTrusted() else {
@@ -31,7 +32,35 @@ enum TextInjector {
         keyDown?.post(tap: .cghidEventTap)
         keyUp?.post(tap: .cghidEventTap)
         Log.write("Inject: 已写入剪贴板并发送 Cmd+V")
+
+        if !backup.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                restorePasteboard(backup)
+                Log.write("Inject: 剪贴板已恢复")
+            }
+        }
         return true
+    }
+
+    private static func backupPasteboard() -> [NSPasteboardItem] {
+        let pasteboard = NSPasteboard.general
+        return (pasteboard.pasteboardItems ?? []).map { item in
+            let copy = NSPasteboardItem()
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    copy.setData(data, forType: type)
+                }
+            }
+            return copy
+        }
+    }
+
+    private static func restorePasteboard(_ items: [NSPasteboardItem]) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        if !items.isEmpty {
+            pasteboard.writeObjects(items)
+        }
     }
 
     private static func copyToPasteboard(_ text: String) {
