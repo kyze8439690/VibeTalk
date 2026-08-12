@@ -10,10 +10,16 @@ final class WhisperTranscriber {
     init?(modelPath: String) {
         var cparams = whisper_context_default_params()
         cparams.use_gpu = true
+        if let ctx = whisper_init_from_file_with_params(modelPath, cparams) {
+            self.ctx = ctx
+            return
+        }
+        cparams.use_gpu = false
         guard let ctx = whisper_init_from_file_with_params(modelPath, cparams) else {
             return nil
         }
         self.ctx = ctx
+        Log.write("Whisper: GPU 初始化失败，已回落 CPU")
     }
 
     deinit {
