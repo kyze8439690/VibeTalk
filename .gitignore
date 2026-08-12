@@ -1,0 +1,12 @@
+# Build
+build/
+build-mac/
+build-vendor/
+vendor/lib/
+vendor/include/
+
+# Misc
+.DS_Store
+
+# Gradle leftovers
+.gradle/

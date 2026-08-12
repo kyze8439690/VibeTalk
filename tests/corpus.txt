@@ -1,0 +1,10 @@
+zh_refactor	帮我重构这个函数，把圈复杂度降下来
+zh_quicksort	帮我写一个快速排序的 Kotlin 实现
+zh_crash	帮我看一下 logcat 里的崩溃日志
+mixed_api	这个 API 的 response 返回了 null，帮我检查一下
+mixed_button	把这个 button 的 onClick 绑定到 ViewModel 里面
+mixed_git	改完之后 git commit，然后 push 到远端仓库
+mixed_bug	这个 bug 是因为没有加锁导致的 race condition
+mixed_debug	这个页面滑动掉帧，帮我 profile 一下看看哪里耗时
+en_refactor	refactor this function and add unit tests for the edge cases
+en_compose	use jetpack compose to build the settings screen
