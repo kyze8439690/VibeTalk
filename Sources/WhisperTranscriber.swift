@@ -3,9 +3,7 @@ import Foundation
 final class WhisperTranscriber {
 
     private var ctx: OpaquePointer?
-
-    private static let defaultPrompt =
-        "以下是简体中文和英文混合的编程技术内容，一律使用简体中文。常用术语：git commit、push、API、response、null、button、onClick、ViewModel、Kotlin、logcat、profile、bug、race condition、重构、函数、掉帧、耗时。"
+    private let modelManager = ModelManager()
 
     init?(modelPath: String) {
         var cparams = whisper_context_default_params()
@@ -53,8 +51,10 @@ final class WhisperTranscriber {
         audioCtx = min(1500, max(512, audioCtx))
         params.audio_ctx = audioCtx
 
+        let prompt = modelManager.buildPrompt(glossary: modelManager.loadGlossary())
+
         let result: String = language.withCString { langPtr in
-            Self.defaultPrompt.withCString { promptPtr in
+            prompt.withCString { promptPtr in
                 params.language = langPtr
                 params.initial_prompt = promptPtr
                 return samples.withUnsafeBufferPointer { buffer -> String in

@@ -20,6 +20,7 @@ final class AppState: ObservableObject {
     }
     @Published var lastResult: String?
     @Published var statusMessage = "初始化中…"
+    @Published var glossaryText = ""
 
     var followSystem: Bool { selectedDeviceID == 0 }
 
@@ -50,6 +51,7 @@ final class AppState: ObservableObject {
     init() {
         requestMicPermission()
         refreshDevices()
+        glossaryText = modelManager.loadGlossary().joined(separator: "\n")
         AudioRecorder.addDeviceChangeListener { [weak self] in
             self?.refreshDevices()
         }
@@ -203,5 +205,13 @@ final class AppState: ObservableObject {
 
     func promptAccessibility() {
         TextInjector.prompt()
+    }
+
+    func saveGlossary(_ text: String) {
+        let terms = text.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        modelManager.saveGlossary(terms)
+        glossaryText = terms.joined(separator: "\n")
     }
 }

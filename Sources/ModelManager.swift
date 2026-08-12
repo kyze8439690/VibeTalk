@@ -4,10 +4,22 @@ final class ModelManager {
 
     static let modelFileName = "ggml-medium-q8_0.bin"
     static let modelURLString = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q8_0.bin"
+    static let glossaryFileName = "glossary.txt"
+
+    static let defaultGlossary: [String] = [
+        "git commit", "push", "pull", "merge", "rebase", "branch", "stash", "PR", "CI",
+        "API", "response", "null", "button", "onClick", "ViewModel", "Kotlin", "Swift",
+        "logcat", "profile", "debug", "bug", "race condition", "重构", "函数", "掉帧", "耗时",
+    ]
 
     var modelURL: URL {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return appSupport.appendingPathComponent("VibeTalk").appendingPathComponent(Self.modelFileName)
+    }
+
+    var glossaryURL: URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return appSupport.appendingPathComponent("VibeTalk").appendingPathComponent(Self.glossaryFileName)
     }
 
     var isModelReady: Bool {
@@ -15,6 +27,34 @@ final class ModelManager {
             return false
         }
         return size > 700_000_000
+    }
+
+    /// 读取术语表；文件不存在时写入默认术语并返回默认值
+    func loadGlossary() -> [String] {
+        let url = glossaryURL
+        if let content = try? String(contentsOf: url, encoding: .utf8) {
+            let terms = content.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            if !terms.isEmpty {
+                return terms
+            }
+        }
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? Self.defaultGlossary.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        return Self.defaultGlossary
+    }
+
+    func saveGlossary(_ terms: [String]) {
+        try? FileManager.default.createDirectory(at: glossaryURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? terms.joined(separator: "\n").write(to: glossaryURL, atomically: true, encoding: .utf8)
+        Log.write("Glossary: 已保存 \(terms.count) 个术语")
+    }
+
+    /// 构建识别用 initial prompt：固定引导语 + 用户术语表
+    func buildPrompt(glossary: [String]) -> String {
+        "以下是简体中文和英文混合的编程技术内容，一律使用简体中文。常用术语：" +
+        glossary.joined(separator: "、") + "。"
     }
 
     func download(progress: @escaping (Float) -> Void) async throws {
