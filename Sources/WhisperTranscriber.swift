@@ -51,29 +51,58 @@ final class WhisperTranscriber {
         audioCtx = min(1500, max(512, audioCtx))
         params.audio_ctx = audioCtx
 
-        let prompt = modelManager.buildPrompt(glossary: modelManager.loadGlossary())
+        // 日文不注入中文术语 prompt，避免中文引导污染日文解码
+        let prompt: String?
+        if language == "ja" {
+            prompt = nil
+        } else {
+            prompt = modelManager.buildPrompt(glossary: modelManager.loadGlossary())
+        }
 
-        let result: String = language.withCString { langPtr in
-            prompt.withCString { promptPtr in
-                params.language = langPtr
-                params.initial_prompt = promptPtr
-                return samples.withUnsafeBufferPointer { buffer -> String in
-                    guard let base = buffer.baseAddress else { return "" }
-                    let rc = whisper_full(ctx, params, base, Int32(samples.count))
-                    guard rc == 0 else { return "" }
-
-                    var text = ""
-                    let nSegments = whisper_full_n_segments(ctx)
-                    for i in 0..<nSegments {
-                        if let segmentText = whisper_full_get_segment_text(ctx, i) {
-                            text += String(cString: segmentText)
-                        }
-                    }
-                    return text
+        let result: String
+        if let prompt {
+            result = language.withCString { langPtr in
+                prompt.withCString { promptPtr in
+                    params.language = langPtr
+                    params.initial_prompt = promptPtr
+                    return runFull(params, samples: samples)
                 }
             }
+        } else {
+            result = language.withCString { langPtr in
+                params.language = langPtr
+                params.initial_prompt = nil
+                return runFull(params, samples: samples)
+            }
         }
-        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+        return sanitize(result.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private func runFull(_ params: whisper_full_params, samples: [Float]) -> String {
+        samples.withUnsafeBufferPointer { buffer -> String in
+            guard let base = buffer.baseAddress else { return "" }
+            let rc = whisper_full(ctx, params, base, Int32(samples.count))
+            guard rc == 0 else { return "" }
+            var text = ""
+            let nSegments = whisper_full_n_segments(ctx)
+            for i in 0..<nSegments {
+                if let segmentText = whisper_full_get_segment_text(ctx, i) {
+                    text += String(cString: segmentText)
+                }
+            }
+            return text
+        }
+    }
+
+    private func sanitize(_ text: String) -> String {
+        String(text.unicodeScalars.filter { scalar in
+            let v = scalar.value
+            if v < 32 && v != 10 && v != 9 { return false }
+            if v == 0xFF00 || v == 0xFFFE || v == 0xFFFF { return false }
+            if v >= 0xFDD0 && v <= 0xFDEF { return false }
+            if v & 0xFFFF == 0xFFFE || v & 0xFFFF == 0xFFFF { return false }
+            return true
+        })
     }
 
     private func detectLanguage(_ samples: [Float], candidates: [String]) -> String {
@@ -98,6 +127,7 @@ final class WhisperTranscriber {
                 best = lang
             }
         }
+        Log.write(String(format: "Whisper: 检测语言=%@ (prob=%.3f, 候选=%@)", best, bestProb, candidates.joined(separator: ",")))
         return best
     }
 }
