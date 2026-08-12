@@ -1,7 +1,17 @@
 #!/bin/bash
-# 编译并打包 VibeTalk.app
-# 用法: ./scripts/package_app.sh
+# 编译并打包 VibeTalk
+# 用法: ./scripts/package_app.sh [--dev|--release]   （默认 --dev）
 set -euo pipefail
+
+MODE="dev"
+if [ "${1:-}" = "--release" ]; then
+    MODE="release"
+elif [ "${1:-}" = "--dev" ]; then
+    MODE="dev"
+elif [ -n "${1:-}" ]; then
+    echo "未知参数: $1（可选 --dev / --release）" >&2
+    exit 1
+fi
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -9,6 +19,16 @@ cd "$ROOT"
 if [ ! -f vendor/lib/libwhisper.a ]; then
     echo "静态库不存在，先执行 scripts/build_vendor.sh"
     ./scripts/build_vendor.sh
+fi
+
+if [ "$MODE" = "release" ]; then
+    APP_NAME="VibeTalk"
+    BUNDLE_ID="io.github.kyze8439690.VibeTalk"
+    ICON="VibeTalk.icns"
+else
+    APP_NAME="VibeTalk Dev"
+    BUNDLE_ID="io.github.kyze8439690.VibeTalk.dev"
+    ICON="VibeTalk-Dev.icns"
 fi
 
 mkdir -p build
@@ -27,13 +47,20 @@ swiftc Sources/*.swift "${SWIFT_FLAGS[@]}" -target arm64-apple-macos14.0 -o buil
 swiftc Sources/*.swift "${SWIFT_FLAGS[@]}" -target x86_64-apple-macos14.0 -o build/VibeTalk-x86_64
 lipo -create build/VibeTalk-arm64 build/VibeTalk-x86_64 -output build/VibeTalk
 
-APP="build/VibeTalk.app"
+APP="build/$APP_NAME.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp Resources/Info.plist "$APP/Contents/"
-cp Resources/VibeTalk.icns "$APP/Contents/Resources/"
+cp "Resources/$ICON" "$APP/Contents/Resources/"
 cp build/VibeTalk "$APP/Contents/MacOS/"
+
+PLIST="$APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleName $APP_NAME" "$PLIST"
+/usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $APP_NAME" "$PLIST" 2>/dev/null || \
+    /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$PLIST"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIconFile ${ICON%.icns}" "$PLIST"
 
 codesign --force --sign "VibeTalk Local Signing" "$APP"
 
-echo "打包完成: $APP"
+echo "打包完成 ($MODE): $APP  [$BUNDLE_ID]"

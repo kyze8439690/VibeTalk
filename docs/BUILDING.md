@@ -9,9 +9,18 @@
 ```bash
 git submodule update --init   # 拉取 vendor/whisper.cpp
 ./scripts/build_vendor.sh     # 编译 whisper.cpp 静态库（Metal，双架构）
-./scripts/package_app.sh      # 编译 Swift + 打包 + 签名
-open build/VibeTalk.app
+./scripts/package_app.sh      # 编译 Swift + 打包 + 签名（开发版）
+open "build/VibeTalk Dev.app"
 ```
+
+打包模式：
+
+| 模式 | 命令 | Bundle ID | 图标 | App 名 |
+|---|---|---|---|---|
+| 开发版（默认） | `./scripts/package_app.sh` 或 `--dev` | `io.github.kyze8439690.VibeTalk.dev` | 橙红 + DEV | VibeTalk Dev |
+| 正式版 | `./scripts/package_app.sh --release` | `io.github.kyze8439690.VibeTalk` | 蓝紫 | VibeTalk |
+
+两个版本可共存安装，注意两者辅助功能权限独立授予。图标由 `scripts/make_icons.sh` 重新生成（调 `make_icon.swift` + iconutil）。
 
 产物为 Universal 二进制（arm64 + x86_64），最低系统 macOS 14。
 

@@ -9,7 +9,7 @@
     <key>CFBundleIconFile</key>
     <string>VibeTalk</string>
     <key>CFBundleIdentifier</key>
-    <string>com.vibetalk.mac</string>
+    <string>io.github.kyze8439690.VibeTalk</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
