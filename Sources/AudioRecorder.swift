@@ -132,6 +132,11 @@ final class AudioRecorder {
         }
 
         let inputFormat = input.outputFormat(forBus: 0)
+        guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
+            throw NSError(domain: "AudioRecorder", code: -2, userInfo: [
+                NSLocalizedDescriptionKey: "输入设备格式无效（采样率 \(inputFormat.sampleRate)，声道 \(inputFormat.channelCount)，设备可能未就绪）"
+            ])
+        }
         guard let targetFormat = AVAudioFormat(
             commonFormat: .pcmFormatFloat32,
             sampleRate: 16000,
@@ -146,11 +151,19 @@ final class AudioRecorder {
 
         queue.sync { collected = [] }
 
-        input.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
+        // 先移除旧 tap，避免"tap 已存在"导致的 NSException 崩溃
+        input.removeTap(onBus: 0)
+
+        input.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] buffer, _ in
             self?.process(buffer: buffer, targetFormat: targetFormat)
         }
 
-        try engine.start()
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            throw error
+        }
         isRecording = true
         Log.write("AudioRecorder: 录音开始, device=\(deviceID), format=\(inputFormat)")
     }
