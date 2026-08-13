@@ -8,10 +8,14 @@
 
 ```bash
 git submodule update --init   # 拉取 vendor/whisper.cpp
-./scripts/build_vendor.sh     # 编译 whisper.cpp 静态库（Metal，双架构）
-./scripts/package_app.sh      # 编译 Swift + 打包 + 签名（开发版）
+./scripts/build_vendor.sh     # 编译 whisper.cpp 静态库（Metal，双架构，并合并 libwhisper_all.a）
+./scripts/package_app.sh      # SPM 编译 Swift + 打包 + 签名（开发版）
 open "build/VibeTalk Dev.app"
 ```
+
+构建结构：Swift 侧为 SPM 工程（`Package.swift`）——C target `CWhisper` 封装 whisper.cpp 静态库（`vendor/lib/libwhisper_all.a`），可执行 target `VibeTalk` 依赖 FirebaseCrashlytics + FirebaseAnalytics。`swift build` 分架构构建后 `lipo` 合成 Universal（多 `--arch` 参数依赖 Xcode，故手动 lipo）。
+
+Firebase 凭据：`secrets/GoogleService-Info.plist`（正式版）与 `secrets/GoogleService-Info-Dev.plist`（开发版），打包时拷入 Resources，gitignore 覆盖；缺失时应用跳过 Firebase 初始化。
 
 打包模式：
 

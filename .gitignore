@@ -10,3 +10,8 @@ vendor/include/
 
 # Gradle leftovers
 .gradle/
+
+# Firebase 凭据
+secrets/
+.build/
+Vendor/whisper.xcframework/

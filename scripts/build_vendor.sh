@@ -16,6 +16,7 @@ cmake -B "$BUILD_DIR" -S vendor/whisper.cpp \
     -DGGML_METAL=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+    -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
     -G Ninja
 
 cmake --build "$BUILD_DIR" -j 10
@@ -30,6 +31,14 @@ cp "$BUILD_DIR/src/libwhisper.a" \
    vendor/lib/
 cp vendor/whisper.cpp/include/whisper.h vendor/include/
 cp vendor/whisper.cpp/ggml/include/*.h vendor/include/
+
+libtool -static -o vendor/lib/libwhisper_all.a \
+    vendor/lib/libwhisper.a \
+    vendor/lib/libggml.a \
+    vendor/lib/libggml-base.a \
+    vendor/lib/libggml-cpu.a \
+    vendor/lib/libggml-metal.a \
+    vendor/lib/libggml-blas.a
 
 rm -rf "$BUILD_DIR"
 echo "完成: vendor/lib, vendor/include"

@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import FirebaseCore
 
 @main
 struct VibeTalkApp: App {
@@ -7,6 +8,11 @@ struct VibeTalkApp: App {
 
     init() {
         Self.runCLIModeIfRequested()
+        if Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil {
+            FirebaseApp.configure()
+        } else {
+            Log.write("Firebase: GoogleService-Info.plist 缺失，未初始化")
+        }
     }
 
     static func runCLIModeIfRequested() {

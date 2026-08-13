@@ -45,11 +45,24 @@ jobs:
             echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: 准备 Firebase 配置
+        env:
+          FIREBASE_PLIST_BASE64: ${{ secrets.FIREBASE_PLIST_BASE64 }}
+        run: |
+          mkdir -p secrets
+          echo "$FIREBASE_PLIST_BASE64" | base64 --decode > secrets/GoogleService-Info.plist
+
       - name: 编译 whisper.cpp 静态库
         run: ./scripts/build_vendor.sh
 
       - name: 打包并签名（正式版）
         run: ./scripts/package_app.sh --release --version "${{ steps.ver.outputs.version }}"
+
+      - name: 上传 dSYM 到 Crashlytics
+        run: |
+          .build/checkouts/firebase-ios-sdk/Crashlytics/upload-symbols \
+            -gsp secrets/GoogleService-Info.plist \
+            -p mac build/VibeTalk.dSYM
 
       - name: 压缩产物
         run: |
